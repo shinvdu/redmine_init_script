@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Modify it to your configuration
+DIR=/mnt/app/redmine/
+PATH=$PATH:/usr/local/ruby/bin
+# Start Redmine in daemon mode.
+start(){
+    cd $DIR
+    echo $PATH
+    unicorn_rails -c config/unicorn.rb -D
+}
+
+# Stop Redmine daemon
+stop(){
+    cd $DIR
+    kill -2 `cat pids/unicorn.pid`
+}
+
+# Check if Redmine is running
+status(){
+	RUBYPID=`ps aux | grep " unicorn_rails -c config/unicorn.rb -D" | grep -v grep | awk '{print $2}'`
+	if [ "x$RUBYPID" = "x" ]; then
+		echo "* Redmine is not running"
+	else
+		echo "* Redmine is running"
+	fi
+}
+
+
+case "$1" in
+	start)
+		start
+		;;
+	
+	stop)
+		stop
+		;;
+	
+	status)
+		status
+		;;
+	
+	restart|force-reload)
+		stop
+		start
+		;;
+
+	*)
+		echo "Usage: $0 {start|stop|restart|force-reload|status}"
+		exit 1
+
+esac
+

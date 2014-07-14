@@ -1,39 +1,84 @@
 #!/bin/sh
 
 # Modify it to your configuration
-DIR=/mnt/app/redmine/
 PATH=$PATH:/usr/local/ruby/bin
 # Start Redmine in daemon mode.
+# move to project root directory
+NAME=redmine
+ENVIROMENT=production
+ 
+# SCRIPT_DIR=`dirname $0`
+# ROOT_DIR=$(cd "${SCRIPT_DIR}/../../"; pwd)
+ROOT_DIR=/mnt/app/redmine/
+ 
+PID="${ROOT_DIR}/pids/unicorn.pid"
+CONF="${ROOT_DIR}/config/unicorn.rb"
 start(){
-    cd $DIR
-    bundle exec unicorn_rails -c config/unicorn.rb -E production -D
+  if [ -e $PID ]; then
+    echo "$NAME already started";
+    exit 1;
+  fi
+  echo "start $NAME";
+  cd $ROOT_DIR
+  bundle exec unicorn_rails -c ${CONF} -E ${ENVIROMENT} -D
 }
 
 # Stop Redmine daemon
 stop(){
-    cd $DIR
-    kill -2 `cat pids/unicorn.pid`
+  if [ ! -e $PID ]; then
+    echo "$NAME not started";
+    exit 1;
+  fi
+  echo "stop $NAME";
+  kill -QUIT `cat ${PID}`
+  rm -f $PID
 }
 
-
+force_stop()
+{
+  if [ ! -e $PID ]; then
+    echo "$NAME not started";
+    exit 1;
+  fi
+  echo "stop $NAME";
+  kill -TERM `cat ${PID}`
+  rm -f $PID
+}
+reload()
+{
+  if [ ! -e $PID ]; then
+    echo "$NAME not started";
+    start
+    exit 0;
+  fi
+  echo "reload $NAME";
+  kill -HUP `cat ${PID}`
+}
+ 
+restart()
+{
+    stop
+    start
+}
 
 case "$1" in
-	start)
-		start
-		;;
-	
-	stop)
-		stop
-		;;
-	
-	restart|force-reload)
-		stop
-		start
-		;;
-
-	*)
-		echo "Usage: $0 {start|stop|restart|force-reload|status}"
-		exit 1
-
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  force-stop)
+    force_stop
+    ;;
+  reload)
+    reload
+    ;;
+  restart)
+    restart
+    ;;
+  *)
+    echo "Syntax Error: release [start|stop|force-stop|reload|restart]"
+    ;;
 esac
 
